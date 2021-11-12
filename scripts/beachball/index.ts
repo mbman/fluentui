@@ -48,17 +48,21 @@ export const config: BeachballConfig = {
           const registry =
             'https://uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/registry/';
 
-          exec(`npm dist-tag --registry ${registry} add ${name}@${version} ${tag}`, (error, stdout, stderr) => {
-            if (error && error.code !== 0) {
-              console.error(`failed to tag ${name} with ${tag}`);
-              console.error(stderr);
-              reject();
-              return;
-            }
+          exec(
+            `npm dist-tag --registry ${registry} add ${name}@${version} ${tag}`,
+            { cwd: packagePath },
+            (error, stdout, stderr) => {
+              if (error && error.code !== 0) {
+                console.error(`failed to tag ${name} with ${tag}`);
+                console.error(stderr);
+                reject();
+                return;
+              }
 
-            console.log(stdout);
-            resolve();
-          });
+              console.log(stdout);
+              resolve();
+            },
+          );
         });
       }
     },
