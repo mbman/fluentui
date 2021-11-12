@@ -11,6 +11,8 @@ export const config: BeachballConfig = {
   tag: 'latest',
   generateChangelog: true,
   scope: getScopes(),
+  registry:
+    'https://uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/registry/',
   changelog: {
     customRenderers: {
       renderHeader,
@@ -19,9 +21,23 @@ export const config: BeachballConfig = {
     groups: [getVNextChangelogGroups()],
   },
   hooks: {
+    prepublish: packagePath => {
+      const authToken = process.env.ADO_TOKEN;
+      return writeFile(
+        path.join(packagePath, '.npmrc'),
+        `
+; begin auth token
+//uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/registry/:username=uifabric
+//uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/registry/:_password=${authToken}
+//uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/registry/:email=npm requires email to be set but doesn't use the value
+//uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/:username=uifabric
+//uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/:_password=${authToken}
+//uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/:email=npm requires email to be set but doesn't use the value
+; end auth token
+      `,
+      );
+    },
     postpublish: async (packagePath, name, version) => {
-      await writeFile(path.resolve(packagePath, '.npmrc'), '//registry.npmjs.org/:_authToken=${NPM_TOKEN}');
-
       // Following https://github.com/microsoft/fluentui/pull/20352 all prerelease versions are released with `latest`
       // Adds a post publish hook to continue to tag prerelease versions with appropriate tags
       // can be removed once v9 is fully released
@@ -29,8 +45,10 @@ export const config: BeachballConfig = {
       if (version.includes(tag) && process.env.RELEASE_VNEXT) {
         return new Promise((resolve, reject) => {
           console.log(`tagging ${name}@${version} with ${tag}`);
+          const registry =
+            'https://uifabric.pkgs.visualstudio.com/4ed167b9-ac3a-405b-b967-443af8db8961/_packaging/ling-test/npm/registry/';
 
-          exec(`npm dist-tag add ${name}@${version} ${tag}`, (error, stdout, stderr) => {
+          exec(`npm dist-tag --registry ${registry} add ${name}@${version} ${tag}`, (error, stdout, stderr) => {
             if (error && error.code !== 0) {
               console.error(`failed to tag ${name} with ${tag}`);
               console.error(stderr);
